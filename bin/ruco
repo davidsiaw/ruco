@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+
+require "ruco"
+
+if ARGV.length != 2
+	puts "Usage: ruco <grammar.ruco> <Grammar Name>"
+	exit 1
+end
+
+file = ARGV[0]
+grammar_name = ARGV[1]
+
+rr = Ruco::Ruco.new grammar_name do
+	instance_eval(File.read(file), file)
+end
+
+File.write("#{grammar_name}.atg",rr.generate_atg)
+File.write("#{grammar_name}.hpp",rr.generate_header)
+
