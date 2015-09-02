@@ -1,0 +1,3 @@
+[submodule "ext/cocor"]
+	path = ext/cocor
+	url = https://github.com/davidsiaw/coco-r-cpp

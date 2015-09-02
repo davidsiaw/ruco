@@ -16,4 +16,3 @@ end
 
 File.write("#{grammar_name}.atg",rr.generate_atg)
 File.write("#{grammar_name}.hpp",rr.generate_header)
-
