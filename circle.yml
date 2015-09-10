@@ -1,0 +1,10 @@
+machine:
+  ruby:
+    version: 2.0.0
+dependencies:
+  pre:
+    - gem uninstall bundler
+    - gem install bundler -v 1.10.2
+test:
+  post:
+    - rake
