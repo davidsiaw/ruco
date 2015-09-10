@@ -8,7 +8,7 @@ checkout:
 dependencies:
   pre:
     - gem install bundler -v 1.10.2
-    - gem install rake-compiler
+    - gem install rake-compiler activesupport
 test:
   pre:
     - rake
