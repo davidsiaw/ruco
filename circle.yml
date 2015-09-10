@@ -1,6 +1,10 @@
 machine:
   ruby:
     version: 2.0.0
+checkout:
+  post:
+    - git submodule sync
+    - git submodule update --init
 dependencies:
   pre:
     - gem install bundler -v 1.10.2
