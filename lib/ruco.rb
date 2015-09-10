@@ -51,6 +51,12 @@ module Ruco
 		end
 	end
 
+	class Sync
+		def generate(indent=0)
+			"#{("\t"*indent)}SYNC"
+		end
+	end
+
 	class Group
 		def initialize(type=:normal, prodset={})
 			@type = type
@@ -89,9 +95,24 @@ module Ruco
 			return thing
 		end
 
+		def sync
+			@stuff << Sync.new
+		end
+
 		def one(thing)
 			thing = convert_thing(thing)
 			@stuff << thing
+		end
+
+		def either(*args)
+			g = Group.new :either, @prodset
+
+			g.instance_eval do
+				args.each do |x|
+					one x
+				end
+			end
+			one g
 		end
 
 		def maybe(thing)
@@ -102,24 +123,22 @@ module Ruco
 			one g
 		end
 
-		def many(thing)
+		def many(thing, options=nil)
 			one thing
+			maybemany thing, options
+		end
+
+		def maybemany(thing, options=nil)
 			g = Group.new :multiple, @prodset
 			g.instance_eval do
+				if options[:separator].is_a? String
+					one options[:separator]
+				else
+					puts "Separator needs to be a simple string"
+				end if options 
 				one thing
 			end
 			one g
-		end
-
-		def maybemany(thing)
-			g = Group.new :multiple, @prodset
-			g.instance_eval do
-				one thing
-			end
-			one g
-		end
-
-		def oneof(*args)
 		end
 
 		def group(&block)
@@ -138,6 +157,7 @@ module Ruco
 
 			openbrace = "("
 			closebrace = ")"
+			divider = ""
 
 			openbrace = "[" if @type == :maybe
 			closebrace = "]" if @type == :maybe
@@ -146,7 +166,9 @@ module Ruco
 			closebrace = "}" if @type == :multiple
 
 
-			("\t"*indent) + openbrace + "\n" + result.join("\n") + "\n" + ("\t"*indent) + closebrace
+			divider = "|" if @type == :either
+
+			("\t"*indent) + openbrace + "\n" + result.join("#{divider}\n") + "\n" + ("\t"*indent) + closebrace
 		end
 
 	end
@@ -314,6 +336,11 @@ namespace #{@name}
 #include <iostream>
 #include <memory>
 #include "#{@name}.hpp"
+
+/*
+	WARNING: This file is generated using ruco. Please modify the .ruco file if you wish to change anything
+	https://github.com/davidsiaw/ruco
+*/
 
 COMPILER #{@name}
 

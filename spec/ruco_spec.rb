@@ -1,11 +1,12 @@
 require 'spec_helper'
+require 'cocor'
 
 describe Ruco do
-  it 'has a version number' do
+  it 'Has a version number' do
     expect(Ruco::VERSION).not_to be nil
   end
 
-  it 'does something useful' do
-    expect(false).to eq(true)
+  it 'Extension can be called' do
+    expect(Cocor.runtest("meow")).to eq("test-meow")
   end
 end

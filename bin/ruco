@@ -1,18 +1,26 @@
 #!/usr/bin/env ruby
 
 require "ruco"
+require "cocor"
 
-if ARGV.length != 2
-	puts "Usage: ruco <grammar.ruco> <Grammar Name>"
+if ARGV.length < 1
+	puts "Usage: ruco <grammar.ruco> [Grammar Name]"
 	exit 1
 end
 
 file = ARGV[0]
-grammar_name = ARGV[1]
+grammar_name = File.basename file, ".ruco"
+grammar_name = ARGV[1] if ARGV[1]
 
-rr = Ruco::Ruco.new grammar_name do
+rr = Ruco::Ruco.new grammar_name.capitalize do
 	instance_eval(File.read(file), file)
 end
 
 File.write("#{grammar_name}.atg",rr.generate_atg)
 File.write("#{grammar_name}.hpp",rr.generate_header)
+
+atg = File.join(Dir.pwd, "#{grammar_name}.atg")
+datadir = Gem.datadir "ruco"
+puts atg
+
+Cocor.compile atg, datadir, grammar_name.capitalize, "#{Dir.pwd}/"
