@@ -4,6 +4,7 @@ machine:
 dependencies:
   pre:
     - gem install bundler -v 1.10.2
+    - gem install rake-compile
 test:
   pre:
     - rake
