@@ -57,6 +57,14 @@ module Ruco
 		end
 	end
 
+	class Variation < Identifier
+
+		def generate(indent=0)
+			code = "production = #{name.downcase};"
+			"#{("\t"*indent)}#{name}<#{name.downcase}> (. #{code} .)"
+		end
+	end
+
 	class Group
 		def initialize(type=:normal, prodset={})
 			@type = type
@@ -73,7 +81,7 @@ module Ruco
 				return LitString.new(thing, @prodset)
 			end
 
-			if thing.is_a? Identifier
+			if thing.is_a? Identifier or thing.is_a? Variation
 
 				thing.prodset = @prodset
 
@@ -81,7 +89,7 @@ module Ruco
 					@prodset[thing.name] = {count: 0, type: :id}
 				end
 				@prodset[thing.name][:count] += 1
-				@prodset[thing.name][:count] += 1 unless @type == :normal
+				@prodset[thing.name][:count] += 1 unless @type == :normal or @type == :either
 			end
 
 			if thing.is_a? Token
@@ -89,7 +97,7 @@ module Ruco
 					@prodset[thing.name] = {count: 0, type: :token}
 				end
 				@prodset[thing.name][:count] += 1
-				@prodset[thing.name][:count] += 1 unless @type == :normal
+				@prodset[thing.name][:count] += 1 unless @type == :normal or @type == :either
 			end
 
 			return thing
@@ -175,9 +183,11 @@ module Ruco
 
 	class Production < Group
 
-		attr_accessor :prodset
+		attr_accessor :prodset, :prodtype
 
-		def initialize(name)
+		def initialize(name, prodtype=:normal)
+
+			@prodtype = prodtype
 			@name = name
 			super()
 		end
@@ -195,6 +205,24 @@ module Ruco
 		def grammar(name, &block)
 			p = Production.new(name, &block)
 			p.instance_eval(&block)
+			@productions[name] = p
+		end
+
+		def variation(name, *args)
+			p = Production.new(name, :variation)
+			p.instance_eval do
+				g = Group.new :either, @prodset
+				g.instance_eval do
+					args.each do |x|
+						if x.is_a? Identifier
+							one Variation.new(x.name)
+						else
+							puts "Variation needs to be a grammar"
+						end
+					end
+				end
+				one g 
+			end
 			@productions[name] = p
 		end
 
@@ -221,38 +249,122 @@ module Ruco
 
 			classlist = []
 
+			parent_map = {}
+
 			dependency_hash = TsortableHash.new
 
 			@productions.each do |prodname, prod|
 
-				dependency_hash[prodname] = []
-				prod.prodset.each do |key, prodinfo|
-					if prodinfo[:type] == :id
-						dependency_hash[prodname] << "#{key}"
+				if prod.prodtype == :normal
+
+					prod.prodset.each do |key, prodinfo|
+
+						if prodinfo[:type] == :id
+							if !dependency_hash[prodname]
+								dependency_hash[prodname] = []
+							end
+							dependency_hash[prodname] << "#{key}"
+						end
 					end
+
+				elsif prod.prodtype == :variation
+
+					prod.prodset.each do |key, prodinfo|
+
+						if prodinfo[:type] == :id
+							if !dependency_hash[key]
+								dependency_hash[key] = []
+							end
+							dependency_hash[key] << "#{prodname}"
+
+							if !parent_map[key]
+								parent_map[key] = []
+							end
+							parent_map[key] << "#{prodname}"
+
+						end
+
+					end
+
+				end
+
+			end
+
+			# remaining productions
+			@productions.each do |prodname, prod|
+				if !dependency_hash[prodname]
+					dependency_hash[prodname] = []
 				end
 			end
 
-			
+			puts "Dependency Chain:"
+			p dependency_hash
 
 			dependency_hash.tsort.each do |prodname|
 
 				prod = @productions[prodname]
 
+
 				memberlist = []
-				prod.prodset.each do |key, prodinfo|
-					name = "#{key}"
+				if prod.prodtype == :normal
 
-					if prodinfo[:type] == :id
+					prod.prodset.each do |key, prodinfo|
+						name = "#{key}"
 
-						if prodinfo[:count] > 1
-							memberlist << "#{name}Array #{name.downcase.pluralize};"
-						else
-							memberlist << "#{name}Ptr #{name.downcase};"
+						if prodinfo[:type] == :id
+
+							#puts "#{name} -> #{prodinfo[:count]}"
+
+							if prodinfo[:count] > 1
+								memberlist << "#{name}Array #{name.downcase.pluralize};"
+							else
+								memberlist << "#{name}Ptr #{name.downcase};"
+							end
+
+						elsif prodinfo[:type] == :token
+
+							memberlist << "std::wstring content;"
 						end
 
-					elsif prodinfo[:type] == :token
-						memberlist << "std::wstring content;"
+					end
+
+				elsif prod.prodtype == :variation
+
+					enumeration_list = []
+					prod.prodset.each do |key, prodinfo|
+						enumeration_list << "\t#{key.upcase}_#{prodname.upcase}"
+					end
+
+					enumerations = enumeration_list.join ",\n"
+
+
+					classlist << <<-TYPE_ENUM_CONTENT
+enum #{prodname}Type
+{
+#{enumerations}
+};
+					TYPE_ENUM_CONTENT
+
+					memberlist << "virtual #{prodname}Type get_#{prodname.downcase}_type() const = 0;"
+
+				else
+					puts "UNKNOWN PRODUCTION TYPE: #{prod.prodtype}"
+				end
+
+				parent_declaration = ""
+				parent_impl = ""
+
+				if parent_map[prodname]
+					list = parent_map[prodname].map{|x| "public #{x}"}.join ", "
+					parent_declaration = ": #{list}"
+
+					parent_map[prodname].each do |parent|
+						memberlist << <<-PARENTDECL
+virtual #{parent}Type get_#{parent.downcase}_type() const
+	{
+		return #{prodname.upcase}_#{parent.upcase};
+	}
+PARENTDECL
 					end
 
 				end
@@ -260,7 +372,7 @@ module Ruco
 				members = memberlist.map {|x| "\t#{x}"}.join "\n"
 
 				classlist << <<-CLASSCONTENT
-class #{prodname}
+class #{prodname} #{parent_declaration}
 {
 public:
 #{members}
@@ -277,6 +389,11 @@ typedef std::vector<#{prodname}Ptr> #{prodname}Array;
 #ifndef #{@name.upcase}_HPP
 #define #{@name.upcase}_HPP
 
+/*
+	WARNING: This file is generated using ruco. Please modify the .ruco file if you wish to change anything
+	https://github.com/davidsiaw/ruco
+*/
+
 #include <string>
 #include <memory>
 #include <vector>
@@ -288,13 +405,72 @@ namespace #{@name}
 
 }
 
-
-#endif // CONTEXT_HPP
+#endif // #{@name.upcase}_HPP
 
 			HEADEREND
 
 			header
 
+		end
+
+		def generate_libhpp()
+			<<-HPPCONTENT
+
+#ifndef PARSE_#{@name.upcase}_HPP
+#define PARSE_#{@name.upcase}_HPP
+
+/*
+	WARNING: This file is generated using ruco. Please modify the .ruco file if you wish to change anything
+	https://github.com/davidsiaw/ruco
+*/
+
+#include <iostream>
+#include <memory>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <set>
+
+#include "Scanner.h"
+#include "Parser.h"
+
+namespace #{@name}
+{
+	#{@name}Ptr Parse(std::string sourceFile);
+}
+
+#endif // PARSE_#{@name.upcase}_HPP
+
+			HPPCONTENT
+		end
+
+		def generate_libcpp()
+			<<-CPPCONTENT
+
+#include "parse_#{@name.downcase}.hpp"
+
+/*
+	WARNING: This file is generated using ruco. Please modify the .ruco file if you wish to change anything
+	https://github.com/davidsiaw/ruco
+*/
+
+namespace #{@name}
+{
+
+#{@name}Ptr Parse(std::string sourceFile)
+{
+	std::shared_ptr<FILE> fp (fopen(sourceFile.c_str(), "r"), fclose);
+	std::shared_ptr<Scanner> scanner (new Scanner(fp.get()));
+	std::shared_ptr<Parser> parser (new Parser(scanner.get()));
+	parser->Parse();
+
+	return parser->#{@name.downcase};
+}
+
+}
+
+			CPPCONTENT
 		end
 
 		def generate_atg()
@@ -317,8 +493,12 @@ namespace #{@name}
 
 				attributes = "<#{prodname}Ptr& production>" unless prodname == @name
 
+				constructor = ""
+
+				constructor = "(. production = std::make_shared<class #{prodname}>(); .)" if prod.prodtype == :normal
+
 				production_string = <<-PRODUCTION
-#{prodname}#{attributes} = (. production = std::make_shared<class #{prodname}>(); .)
+#{prodname}#{attributes} = #{constructor}
 #{declarations}
 #{prod.generate}
 .
