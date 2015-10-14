@@ -22,12 +22,16 @@ Gem::Specification.new do |spec|
     raise "RubyGems 2.0 or newer is required to protect against public gem pushes."
   end
 
-  spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
+  spec.files         = Dir['lib/**/*.rb'] + 
+                        Dir['bin/*'] + 
+                        Dir['ext/**/*'] + 
+                        Dir['data/**/*'] +
+                        ["Rakefile"]
   spec.bindir        = "bin"
   spec.executables   = ["ruco"]
   spec.require_paths = ["lib"]
 
-  spec.extensions = %w[ext/cocor]
+  spec.extensions = %w[ext/cocor/extconf.rb]
 
   spec.add_dependency "activesupport"
 
