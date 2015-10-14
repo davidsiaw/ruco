@@ -2,6 +2,7 @@
 
 require "ruco"
 require "cocor"
+require "fileutils"
 
 if ARGV.length < 1
 	puts "Usage: ruco <grammar.ruco> [Grammar Name]"
@@ -20,6 +21,7 @@ File.write("#{grammar_name}.atg",rr.generate_atg)
 File.write("#{grammar_name}.hpp",rr.generate_header)
 File.write("parse_#{grammar_name}.cpp",rr.generate_libcpp)
 File.write("parse_#{grammar_name}.hpp",rr.generate_libhpp)
+FileUtils.cp(File.join(Gem.datadir("ruco"), "picojson", "picojson.h"),"picojson.hpp")
 
 atg = File.join(Dir.pwd, "#{grammar_name}.atg")
 datadir = Gem.datadir "ruco"

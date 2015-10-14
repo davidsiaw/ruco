@@ -237,6 +237,10 @@ module Ruco
 				p.instance_eval do
 					one Token.new("camelcase", @prodset)
 				end
+			when :hex_integer
+				p.instance_eval do
+					one Token.new("hexinteger", @prodset)
+				end
 			when :integer
 				p.instance_eval do
 					one Token.new("integer", @prodset)
@@ -297,8 +301,8 @@ module Ruco
 				end
 			end
 
-			puts "Dependency Chain:"
-			p dependency_hash
+			#puts "Dependency Chain:"
+			#p dependency_hash
 
 			dependency_hash.tsort.each do |prodname|
 
@@ -435,9 +439,19 @@ namespace #{@name}
 #include "Scanner.h"
 #include "Parser.h"
 
+#include "picojson.hpp"
+
 namespace #{@name}
 {
+	/**
+	 * Parses a source file into the data structure of #{@name}
+	 */
 	#{@name}Ptr Parse(std::string sourceFile);
+
+	/**
+	 * Transforms the data structure of #{@name} to an abstract syntax tree in JSON format
+	 */
+	picojson::value Jsonify(#{@name}Ptr parseResult);
 }
 
 #endif // PARSE_#{@name.upcase}_HPP
@@ -445,7 +459,133 @@ namespace #{@name}
 			HPPCONTENT
 		end
 
+		def write_jsonify_function(prodname, prod)
+
+			pset = <<-PSETEND
+		object[L"_type"] = picojson::value(L"#{prodname}");
+			PSETEND
+
+			if prod.prodtype == :variation
+
+				switchladder = ""
+				
+				prod.prodset.each do |key, prodinfo|
+
+					switchladder += <<-LADDEREND
+			case #{key.upcase}_#{prodname.upcase}:
+			{
+				content = Compile#{key}(std::dynamic_pointer_cast<#{key}>(pointer));
+				break;
+			}
+					LADDEREND
+
+				end
+
+				pset += <<-PSETEND
+		picojson::object content;
+		switch(pointer->get_#{prodname.downcase}_type())
+		{
+#{switchladder}
+		}
+
+		object[L"_content"] = picojson::value(content);
+				PSETEND
+
+
+			elsif prod.prodtype == :normal
+
+				members_code = ""
+
+				prod.prodset.each do |key, prodinfo|
+
+					members_code += <<-MEMBERCODEEND
+		// #{prodinfo}
+				MEMBERCODEEND
+
+					if prodinfo[:count] == 1
+
+						if prodinfo[:type] == :token
+
+							members_code += <<-PSETEND
+		object[L"_token"] = picojson::value(pointer->content);
+							PSETEND
+
+						elsif prodinfo[:type] == :id
+							members_code += <<-PSETEND
+
+		picojson::object #{key.downcase};
+
+		#{key.downcase} = Compile#{key}(pointer->#{key.downcase});
+
+		object[L"#{key.downcase}"] = picojson::value(#{key.downcase});
+							PSETEND
+						end
+
+					else
+
+						if prodinfo[:type] == :token
+							raise "Unimplemented"
+
+						elsif prodinfo[:type] == :id
+							members_code += <<-PSETEND
+
+		picojson::array #{key.downcase}s;
+
+		for(unsigned i=0; i<pointer->#{key.downcase}s.size(); i++)
+		{
+			#{key.downcase}s.push_back(picojson::value(Compile#{key}(pointer->#{key.downcase}s[i])));
+		}
+
+		object[L"#{key.downcase}s"] = picojson::value(#{key.downcase}s);
+							PSETEND
+						end
+
+					end
+
+				end
+
+				pset += <<-PSETEND
+		
+
+#{members_code}
+
+
+				PSETEND
+
+			end
+
+			funcname = "picojson::object Compile#{prodname}(#{prodname}Ptr pointer)"
+
+			funcdef = <<-FUNCTIONEND
+	#{funcname}
+	{
+		picojson::object object;
+
+		// #{prod.prodtype}
+#{pset}
+		return object;
+	}
+
+			FUNCTIONEND
+
+			{name: funcname, definition: funcdef}
+
+		end
+
 		def generate_libcpp()
+
+			functions = ""
+			function_declarations = ""
+
+			@productions.each do |prodname, prod|
+
+				f = write_jsonify_function(prodname, prod)
+				functions += f[:definition]
+				function_declarations += <<-FUNCDECLEND
+	#{f[:name]};
+				FUNCDECLEND
+			end
+
 			<<-CPPCONTENT
 
 #include "parse_#{@name.downcase}.hpp"
@@ -457,16 +597,23 @@ namespace #{@name}
 
 namespace #{@name}
 {
+	#{@name}Ptr Parse(std::string sourceFile)
+	{
+		std::shared_ptr<FILE> fp (fopen(sourceFile.c_str(), "r"), fclose);
+		std::shared_ptr<Scanner> scanner (new Scanner(fp.get()));
+		std::shared_ptr<Parser> parser (new Parser(scanner.get()));
+		parser->Parse();
 
-#{@name}Ptr Parse(std::string sourceFile)
-{
-	std::shared_ptr<FILE> fp (fopen(sourceFile.c_str(), "r"), fclose);
-	std::shared_ptr<Scanner> scanner (new Scanner(fp.get()));
-	std::shared_ptr<Parser> parser (new Parser(scanner.get()));
-	parser->Parse();
+		return parser->#{@name.downcase};
+	}
 
-	return parser->#{@name.downcase};
-}
+#{function_declarations}
+#{functions}
+
+	picojson::value Jsonify(SerialistPtr parseResult)
+	{
+		return picojson::value(CompileSerialist(parseResult));
+	}
 
 }
 
@@ -511,7 +658,7 @@ namespace #{@name}
 
 			productions = productionlist.join("\n")
 
-			frame = <<-FRAMEEND
+			<<-FRAMEEND
 
 #include <iostream>
 #include <memory>
@@ -544,6 +691,7 @@ TOKENS
 	camelcase    = letter { bigletter | letter | digit }.
 
 	integer      = digit { digit }.
+	hexinteger   = '0' 'x' hex { hex }.
 
 	string       = '"' { stringCh | '\\\\' printable } '"'.
 	badString    = '"' { stringCh | '\\\\' printable } (cr | lf).
@@ -573,8 +721,6 @@ PRODUCTIONS
 END #{@name}.
 
 FRAMEEND
-
-		frame
 
 		end
 	end
