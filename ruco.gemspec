@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'ruco/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "ruco"
+  spec.name          = "ruco-cpp"
   spec.version       = Ruco::VERSION
   spec.authors       = ["David Siaw"]
   spec.email         = ["davidsiaw@gmail.com"]
