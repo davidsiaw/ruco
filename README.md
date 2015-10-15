@@ -72,7 +72,7 @@ This will write the following files in the current directory:
 
 It is up to use the functions in `parse_MyGrammar.hpp`. There are two functions:
 
-```
+```c++
 namespace MyGrammar
 {
 	/**
@@ -89,11 +89,90 @@ namespace MyGrammar
 
 Simply call `Parse()` on a source file that follows your grammar and it will return a `std::shared_ptr` containing the AST. If you wish to see or process the AST with another tool, you can export it by calling `Jsonify()` on the parse result.
 
+The following example `main.cpp` takes a file called `test.lang` and outputs the AST of the file in JSON format to the console.
+
+```c++
+#include "parse_MyGrammar.hpp"
+
+int main()
+{
+	auto s = MyGrammar::Parse("test.lang");
+	auto json = MyGrammar::Jsonify(s);
+	
+	std::wcout << json.serialize() << std::endl;
+
+	return EXIT_SUCCESS;
+}
+```
+
 ### Building the code
 
 As shown above ruco will generate a Makefile for you. However the code will not compile unless you have a `main()` function. You need to write this code yourself.
 
 Feel free to ignore the Makefile if you wish to use the code generated as a library instead.
+
+## Reference
+
+Ruco files are made of statements that define elements of your language.
+
+- `token` - A string of characters that meet a particular criteria
+- `variation` - A set of grammars or tokens that can appear in the same place (are variations of an element)
+- `grammar` - A production that contains a sub-set of your language
+
+Within each grammar you need to declare elements of your language. The file itself is a grammar.
+
+- `group` - a set of elements that come one after another
+- `either` - a set of elements that can appear in the same place
+- `one` - one of this element
+- `many` - one or more of this element
+- `maybe` - zero or one of this element
+- `maybemany` - zero or more of this element
+
+More details are shown below:
+
+### `token`
+
+A token takes a string and a type of token it is. Tokens available are:
+- `:camelcase`
+- `:pascalcase`
+- `:integer`
+- `:string`
+
+Example:
+```ruby
+token "VariableName", :camelcase
+```
+
+### `variation`
+
+A variation is an element that is the base production of another set of elements.
+
+Example:
+```ruby
+grammar "IntegerLiteral" do
+	one Number
+end
+
+grammar "MemberName" do
+	one MemberIdentifier
+end
+
+variation "Expression", MemberName, IntegerLiteral
+```
+
+### `grammar`
+
+A grammar declares a subset of the language.
+
+Example:
+```ruby
+grammar "ArrayDef" do
+	one "["
+	one Expression
+	one "]"
+end
+```
+
 
 ## Development
 
