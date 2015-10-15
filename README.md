@@ -89,6 +89,12 @@ namespace MyGrammar
 
 Simply call `Parse()` on a source file that follows your grammar and it will return a `std::shared_ptr` containing the AST. If you wish to see or process the AST with another tool, you can export it by calling `Jsonify()` on the parse result.
 
+### Building the code
+
+As shown above ruco will generate a Makefile for you. However the code will not compile unless you have a `main()` function. You need to write this code yourself.
+
+Feel free to ignore the Makefile if you wish to use the code generated as a library instead.
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake rspec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.

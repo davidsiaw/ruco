@@ -12,8 +12,9 @@ end
 file = ARGV[0]
 grammar_name = File.basename file, ".ruco"
 grammar_name = ARGV[1] if ARGV[1]
+grammar_name = grammar_name.capitalize
 
-rr = Ruco::Ruco.new grammar_name.capitalize do
+rr = Ruco::Ruco.new grammar_name do
 	instance_eval(File.read(file), file)
 end
 
