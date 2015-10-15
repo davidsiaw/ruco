@@ -8,6 +8,7 @@ Gem::Specification.new do |spec|
   spec.version       = Ruco::VERSION
   spec.authors       = ["David Siaw"]
   spec.email         = ["davidsiaw@gmail.com"]
+  spec.required_ruby_version = '>= 2.0' # Because of syntax
 
   spec.summary       = "Boilerplate generator for Coco/R"
   spec.description   = "Generates an LL(1) parser for a grammar described in a .ruco file"
