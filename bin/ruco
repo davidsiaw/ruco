@@ -21,10 +21,11 @@ File.write("#{grammar_name}.atg",rr.generate_atg)
 File.write("#{grammar_name}.hpp",rr.generate_header)
 File.write("parse_#{grammar_name}.cpp",rr.generate_libcpp)
 File.write("parse_#{grammar_name}.hpp",rr.generate_libhpp)
-FileUtils.cp(File.join(Gem.datadir("ruco"), "picojson", "picojson.h"),"picojson.hpp")
+File.write("Makefile", rr.generate_makefile) unless File.exists? "Makefile"
+FileUtils.cp(File.join(Gem.datadir("ruco-cpp"), "picojson", "picojson.h"),"picojson.hpp")
 
 atg = File.join(Dir.pwd, "#{grammar_name}.atg")
-datadir = Gem.datadir "ruco"
+datadir = Gem.datadir "ruco-cpp"
 puts atg
 
 Cocor.compile atg, datadir, grammar_name.capitalize, "#{Dir.pwd}/"
