@@ -12,14 +12,13 @@ end
 file = ARGV[0]
 grammar_name = File.basename file, ".ruco"
 grammar_name = ARGV[1] if ARGV[1]
-grammar_name = grammar_name.capitalize
 
-rr = Ruco::Ruco.new grammar_name do
+rr = Ruco::Ruco.new grammar_name.capitalize do
 	instance_eval(File.read(file), file)
 end
 
 File.write("#{grammar_name}.atg",rr.generate_atg)
-File.write("#{grammar_name}.hpp",rr.generate_header)
+File.write("#{grammar_name.capitalize}.hpp",rr.generate_header)
 File.write("parse_#{grammar_name}.cpp",rr.generate_libcpp)
 File.write("parse_#{grammar_name}.hpp",rr.generate_libhpp)
 File.write("Makefile", rr.generate_makefile) unless File.exists? "Makefile"
