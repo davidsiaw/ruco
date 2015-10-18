@@ -379,6 +379,7 @@ PARENTDECL
 class #{prodname} #{parent_declaration}
 {
 public:
+	unsigned _line, _col;
 #{members}
 };
 typedef std::shared_ptr<#{prodname}> #{prodname}Ptr;
@@ -463,6 +464,8 @@ namespace #{@name}
 
 			pset = <<-PSETEND
 		object[L"_type"] = picojson::value(L"#{prodname}");
+		object[L"_col"] = picojson::value((double)pointer->_col);
+		object[L"_line"] = picojson::value((double)pointer->_line);
 			PSETEND
 
 			if prod.prodtype == :variation
@@ -597,9 +600,15 @@ namespace #{@name}
 
 namespace #{@name}
 {
+	class FileNotFoundException {};
+
 	#{@name}Ptr Parse(std::string sourceFile)
 	{
 		std::shared_ptr<FILE> fp (fopen(sourceFile.c_str(), "r"), fclose);
+		if (!fp)
+		{
+			throw FileNotFoundException();
+		}
 		std::shared_ptr<Scanner> scanner (new Scanner(fp.get()));
 		std::shared_ptr<Parser> parser (new Parser(scanner.get()));
 		parser->Parse();
@@ -701,10 +710,16 @@ $(OUT)/%.o:%.cpp $(OUT)/%.d
 
 				constructor = "(. production = std::make_shared<class #{prodname}>(); .)" if prod.prodtype == :normal
 
+				linecolreg = "(. unsigned curline = la->line, curcol = la->col; .)"
+
+				recordlinecol = "(. production->_line = curline; production->_col = curcol; .)"
+
 				production_string = <<-PRODUCTION
 #{prodname}#{attributes} = #{constructor}
+#{linecolreg}
 #{declarations}
 #{prod.generate}
+#{recordlinecol}
 .
 				PRODUCTION
 
