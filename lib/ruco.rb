@@ -128,6 +128,7 @@ module Ruco
 			g.instance_eval do
 				one thing
 			end
+			g.multiply
 			one g
 		end
 
@@ -146,7 +147,19 @@ module Ruco
 				end if options 
 				one thing
 			end
+			g.multiply
 			one g
+		end
+
+		def multiply
+			@stuff.each do |x|
+				if x.is_a? Group
+					x.multiply
+				elsif x.is_a? LitString
+				else
+					@prodset[x.name][:count] += 1
+				end
+			end
 		end
 
 		def group(&block)
@@ -244,6 +257,14 @@ module Ruco
 			when :integer
 				p.instance_eval do
 					one Token.new("integer", @prodset)
+				end
+			when :string
+				p.instance_eval do
+					one Token.new("string", @prodset)
+				end
+			when :char
+				p.instance_eval do
+					one Token.new("char", @prodset)
 				end
 			end
 			@productions[name] = p
@@ -445,6 +466,11 @@ namespace #{@name}
 namespace #{@name}
 {
 	/**
+	 * Exception thrown when the specified source file is not found
+	 */
+	class FileNotFoundException {};
+
+	/**
 	 * Parses a source file into the data structure of #{@name}
 	 */
 	#{@name}Ptr Parse(std::string sourceFile);
@@ -515,12 +541,14 @@ namespace #{@name}
 
 						elsif prodinfo[:type] == :id
 							members_code += <<-PSETEND
+		if (pointer->#{key.downcase})
+		{
+			picojson::object #{key.downcase};
 
-		picojson::object #{key.downcase};
+			#{key.downcase} = Compile#{key}(pointer->#{key.downcase});
 
-		#{key.downcase} = Compile#{key}(pointer->#{key.downcase});
-
-		object[L"#{key.downcase}"] = picojson::value(#{key.downcase});
+			object[L"#{key.downcase}"] = picojson::value(#{key.downcase});
+		}
 							PSETEND
 						end
 
@@ -532,14 +560,14 @@ namespace #{@name}
 						elsif prodinfo[:type] == :id
 							members_code += <<-PSETEND
 
-		picojson::array #{key.downcase}s;
+		picojson::array #{key.downcase.pluralize};
 
-		for(unsigned i=0; i<pointer->#{key.downcase}s.size(); i++)
+		for(unsigned i=0; i<pointer->#{key.downcase.pluralize}.size(); i++)
 		{
-			#{key.downcase}s.push_back(picojson::value(Compile#{key}(pointer->#{key.downcase}s[i])));
+			#{key.downcase.pluralize}.push_back(picojson::value(Compile#{key}(pointer->#{key.downcase.pluralize}[i])));
 		}
 
-		object[L"#{key.downcase}s"] = picojson::value(#{key.downcase}s);
+		object[L"#{key.downcase.pluralize}"] = picojson::value(#{key.downcase.pluralize});
 							PSETEND
 						end
 
@@ -600,8 +628,6 @@ namespace #{@name}
 
 namespace #{@name}
 {
-	class FileNotFoundException {};
-
 	#{@name}Ptr Parse(std::string sourceFile)
 	{
 		std::shared_ptr<FILE> fp (fopen(sourceFile.c_str(), "r"), fclose);
