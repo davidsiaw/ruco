@@ -254,9 +254,9 @@ module Ruco
 				p.instance_eval do
 					one Token.new("hexinteger", @prodset)
 				end
-			when :integer
+			when :number
 				p.instance_eval do
-					one Token.new("integer", @prodset)
+					one Token.new("number", @prodset)
 				end
 			when :string
 				p.instance_eval do
@@ -788,7 +788,7 @@ TOKENS
 	pascalcase   = bigletter { bigletter | letter | digit }.
 	camelcase    = letter { bigletter | letter | digit }.
 
-	integer      = digit { digit }.
+	number      = digit { digit } [ '.' { digit } ].
 	hexinteger   = '0' 'x' hex { hex }.
 
 	string       = '"' { stringCh | '\\\\' printable } '"'.
