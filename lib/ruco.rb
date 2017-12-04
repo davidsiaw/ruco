@@ -212,6 +212,7 @@ module Ruco
 			@name = grammar_name
 			super(grammar_name)
 			@productions = {grammar_name => self}
+			@custom_tokens = {}
 			instance_eval(&block)
 		end
 
@@ -239,7 +240,7 @@ module Ruco
 			@productions[name] = p
 		end
 
-		def token(name, type)
+		def token(name, type, definitionstring)
 			p = Production.new(name)
 			case type
 			when :pascal_case
@@ -265,6 +266,11 @@ module Ruco
 			when :char
 				p.instance_eval do
 					one Token.new("char", @prodset)
+				end
+			when :custom
+				@custom_tokens["customToken#{name}"] = "#{definitionstring}"
+				p.instance_eval do
+					one Token.new("customToken#{name}", @prodset)
 				end
 			end
 			@productions[name] = p
@@ -757,6 +763,10 @@ $(OUT)/%.o:%.cpp $(OUT)/%.d
 
 			productions = productionlist.join("\n")
 
+			custom_tokens = @custom_tokens.map do |k,v|
+				"\t#{k} = #{v}."
+			end.join("\n")
+
 			<<-FRAMEEND
 
 #include <iostream>
@@ -796,6 +806,8 @@ TOKENS
 	badString    = '"' { stringCh | '\\\\' printable } (cr | lf).
 	char         = '\\'' ( charCh | '\\\\' printable { hex } ) '\\''.
 	endOfLine    = cr | lf.
+
+#{custom_tokens}
 
 PRAGMAS
 	ddtSym    = '$' { digit | letter }. 
