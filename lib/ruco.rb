@@ -240,7 +240,7 @@ module Ruco
 			@productions[name] = p
 		end
 
-		def token(name, type, definitionstring)
+		def token(name, type, definitionstring=nil)
 			p = Production.new(name)
 			case type
 			when :pascal_case
@@ -652,9 +652,9 @@ namespace #{@name}
 #{function_declarations}
 #{functions}
 
-	picojson::value Jsonify(SerialistPtr parseResult)
+	picojson::value Jsonify(#{prodname}Ptr parseResult)
 	{
-		return picojson::value(CompileSerialist(parseResult));
+		return picojson::value(Compile#{prodname}(parseResult));
 	}
 
 }
