@@ -652,9 +652,9 @@ namespace #{@name}
 #{function_declarations}
 #{functions}
 
-	picojson::value Jsonify(#{prodname}Ptr parseResult)
+	picojson::value Jsonify(#{@name}Ptr parseResult)
 	{
-		return picojson::value(Compile#{prodname}(parseResult));
+		return picojson::value(Compile#{@name}(parseResult));
 	}
 
 }
