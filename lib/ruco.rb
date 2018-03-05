@@ -103,6 +103,24 @@ module Ruco
 			return thing
 		end
 
+		def group_type
+			@type
+		end
+
+		def grammar_tree
+			@stuff.map do |x|
+				if x.is_a? LitString
+					{type: "terminal", token: x.str}
+				elsif x.is_a? Group
+					{type: "group", sort: x.group_type, inner: x.grammar_tree}
+				elsif x.is_a? Identifier or x.is_a? Variation or x.is_a? Token
+					{type: "nonterminal", ident: x.name}
+				else
+					{type: "unknown", x: "*****************"}
+				end
+			end
+		end
+
 		def sync
 			@stuff << Sync.new
 		end
@@ -274,6 +292,10 @@ module Ruco
 				end
 			end
 			@productions[name] = p
+		end
+
+		def generate_tree
+			result = @productions.map{|k,v| [k, v.grammar_tree] }.to_h
 		end
 
 		def generate_header()
