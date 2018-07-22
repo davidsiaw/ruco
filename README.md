@@ -230,7 +230,6 @@ bundle exec ruco example.ruco
 
 This will produce all the files needed to run this example, and generates an API to access the AST.
 
-
 For now, let us simply compile it:
 
 ```bash
@@ -243,7 +242,36 @@ After this, simply run the test application that was created like this:
 ./example_parse
 ```
 
-You should see some JSON in the output. This is the AST of the test file `test.example` we created earlier. Now you can make use of this AST to do whatever processing you want for your compiler!
+You should see some JSON in the output. The following is pretty printed, but you should receive a similar output anyway.
+
+```json
+{
+  "_col": 1,
+  "_line": 1,
+  "_type": "Example",
+  "binary": {
+    "_col": 1,
+    "_line": 1,
+    "_type": "Binary",
+    "numberliterals": [
+      {
+        "_col": 1,
+        "_line": 1,
+        "_token": "5",
+        "_type": "NumberLiteral"
+      },
+      {
+        "_col": 3,
+        "_line": 1,
+        "_token": "6",
+        "_type": "NumberLiteral"
+      }
+    ]
+  }
+}
+```
+
+This is the AST of the test file `test.example` we created earlier. Now you can make use of this AST to do whatever processing you want for your compiler!
 
 ## Development
 
