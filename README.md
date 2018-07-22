@@ -173,6 +173,77 @@ grammar "ArrayDef" do
 end
 ```
 
+## Getting Started
+
+Here is a simple tutorial to get you started using ruco!
+
+First of all, make a new directory and enter it.
+
+```bash
+mkdir tutorial
+cd tutorial
+```
+
+Then, make a Gemfile and specify that you want to use ruco-cpp
+
+```
+source "https://rubygems.org"
+
+gem "ruco-cpp"
+```
+
+Install ruco-cpp this way
+
+```bash
+bundle
+```
+
+Now let us make a simple grammar that can parse an addition operation like `1+1`
+
+In order to do so, we need to specify that there is a number, followed by a plus sign, followed by a number.
+
+We then need to create a new file lets call it `example.ruco` and write the following in it:
+
+```ruby
+token "NumberLiteral", :number
+
+grammar "Binary" do
+	one NumberLiteral
+	one "+"
+	one NumberLiteral
+end
+
+one Binary
+```
+
+Also we will need a test case. So let us make a file called `test.example` with the following:
+
+```
+5 + 6
+```
+
+Excellent. Now in the command line, we run ruco like so:
+
+```bash
+bundle exec ruco example.ruco
+```
+
+This will produce all the files needed to run this example, and generates an API to access the AST.
+
+
+For now, let us simply compile it:
+
+```bash
+make
+```
+
+After this, simply run the test application that was created like this:
+
+```bash
+./example_parse
+```
+
+You should see some JSON in the output. This is the AST of the test file `test.example` we created earlier. Now you can make use of this AST to do whatever processing you want for your compiler!
 
 ## Development
 

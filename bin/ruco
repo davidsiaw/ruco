@@ -22,6 +22,31 @@ File.write("#{grammar_name.capitalize}.hpp",rr.generate_header)
 File.write("parse_#{grammar_name}.cpp",rr.generate_libcpp)
 File.write("parse_#{grammar_name}.hpp",rr.generate_libhpp)
 File.write("Makefile", rr.generate_makefile) unless File.exists? "Makefile"
+File.write("#{grammar_name}.cpp", <<-EXAMPLE_FILE ) unless File.exists? "#{grammar_name}.cpp"
+#include "parse_#{grammar_name}.hpp"
+
+// This is an example of how you would parse a file and print its AST.
+
+int main()
+{
+	try
+	{
+		auto a = #{grammar_name.capitalize}::Parse("test.#{grammar_name}");
+		std::wcout << #{grammar_name.capitalize}::Jsonify(a).serialize() << std::endl;
+		return EXIT_SUCCESS;
+	}
+	catch(#{grammar_name.capitalize}::FileNotFoundException e)
+	{
+		std::wcout << "File test.#{grammar_name} not found." << std::endl;
+	}
+	catch(#{grammar_name.capitalize}::ParserException e)
+	{
+		std::wcout << e.GetMessage() << std::endl;
+	}
+	return EXIT_SUCCESS;
+}
+EXAMPLE_FILE
+
 FileUtils.cp(File.join(Gem.loaded_specs['ruco-cpp'].full_gem_path, "data", "ruco-cpp", "picojson", "picojson.h"),"picojson.hpp")
 
 atg = File.join(Dir.pwd, "#{grammar_name}.atg")
