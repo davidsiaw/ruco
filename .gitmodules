@@ -1,6 +1,3 @@
 [submodule "ext/cocor"]
 	path = ext/cocor
 	url = https://github.com/davidsiaw/coco-r-cpp
-[submodule "data/ruco-cpp/picojson"]
-	path = data/ruco-cpp/picojson
-	url = https://github.com/davidsiaw/picojson

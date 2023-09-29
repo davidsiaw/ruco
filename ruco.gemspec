@@ -36,8 +36,8 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "activesupport", "~> 4.2"
 
-  spec.add_development_dependency "bundler", "~> 1.10"
-  spec.add_development_dependency "rake", "~> 10.0"
-  spec.add_development_dependency "rake-compiler", "~> 0.9.5"
-  spec.add_development_dependency "rspec", "~> 3.3"
+  spec.add_development_dependency "bundler"
+  spec.add_development_dependency "rake"
+  spec.add_development_dependency "rake-compiler"
+  spec.add_development_dependency "rspec"
 end
